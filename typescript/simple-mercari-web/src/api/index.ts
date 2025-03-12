@@ -14,7 +14,7 @@ export interface ItemListResponse {
 export const fetchItems = async (): Promise<ItemListResponse> => {
   const response = await fetch(`${SERVER_URL}/items`, {
     method: 'GET',
-    mode: 'cors',
+    mode: 'no-cors',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
@@ -22,7 +22,7 @@ export const fetchItems = async (): Promise<ItemListResponse> => {
   });
 
   if (response.status >= 400) {
-    throw new Error('Failed to fetch items from the server');
+    throw new Error('Failed to fetch items from the server')
   }
   return response.json();
 };

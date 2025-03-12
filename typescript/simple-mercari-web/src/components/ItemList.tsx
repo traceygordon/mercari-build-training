@@ -19,7 +19,7 @@ export const ItemList = ({ reload, onLoadCompleted }: Prop) => {
           onLoadCompleted();
         })
         .catch((error) => {
-          console.error('GET error:', error);
+          console.error('GET error:', error)
         });
     };
 
