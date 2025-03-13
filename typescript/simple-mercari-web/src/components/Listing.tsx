@@ -70,7 +70,7 @@ export const Listing = ({ onListingCompleted }: Prop) => {
   };
   return (
     <div className="Listing">
-      <form onSubmit={onSubmit}>
+      <form className= "formbox" onSubmit={onSubmit}>
         <div>
           <input
             type="text"
@@ -100,6 +100,13 @@ export const Listing = ({ onListingCompleted }: Prop) => {
           <button className="button" type="submit">List this item</button>
         </div>
       </form>
+
+      <div className="construction">
+      <img className="img" src="Bob_the_builder.jpg" /> 
+      <h1>Under construction</h1>
+  
     </div>
+    </div>
+    
   );
 };
