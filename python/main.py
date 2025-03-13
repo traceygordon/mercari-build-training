@@ -2,13 +2,13 @@ import os
 import logging
 import pathlib
 import sqlite3
-from fastapi import FastAPI, Form, HTTPException, Depends, UploadFile
+from fastapi import FastAPI, Form, HTTPException, Depends, Query
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import hashlib
-from typing import List, Optional
+from typing import Optional
 
 #PATHS
 images = pathlib.Path(__file__).parent.resolve() / "images"
@@ -46,22 +46,27 @@ def hello():
     return HelloResponse(**{"message": "Hello, world!"})
 
 
-#ITEM MODEL
+#MODELS
 class Item(BaseModel):
     id: Optional[int] = None
     name: str
     category: str
-    image : UploadFile
+
+
+
+class AddItemResponse(BaseModel):
+    message: str
+
 
 #DATABASE AND GET ITEMS
 @app.get("/items")
 def get_db():
     conn = sqlite3.connect("mercari.sqlite3")
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users") 
+    cursor.execute("SELECT * FROM items;") 
     data = cursor.fetchall()
     conn.close()
-    return {"data": data} 
+    return AddItemResponse(**{"message": f"items: {data}"})
 
 def setup_database():
     conn = sqlite3.connect(db)
@@ -74,33 +79,38 @@ def setup_database():
 
 
 #GET IMAGE
-@app.get("/image/{image_name}")
-async def get_image(image_name):
-    image = images / image_name
+@app.get("/image/")
+async def get_image(image_name: Optional[str] = Query(None)):
+    if image_name is None:
+        image_name = "default.jpg"
 
-    if not image_name.endswith(".jpg"):
-        raise HTTPException(status_code=400, detail="Image path does not end with .jpg")
+    return image_name
 
-    if not image.exists():
-        logger.debug(f"Image not found: {image}")
-        image = images / "default.jpg"
+    # image_path = images / image_name
 
-    return FileResponse(image)
+    # if not image_name.endswith(".jpg"):
+    #     raise HTTPException(status_code=400, detail="Image does not end with .jpg")
 
-#HASHED IMAGE
-def hash_image(image_file: UploadFile):
-        image = image_file.file.read()
-        hash_value = hashlib.sha256(image).hexdigest()
-        hashed_image_name = f"{hash_value}.jpg"
-        hashed_image_path = images / hashed_image_name
+    # if not image_path.exists():
+    #     logger.debug(f"Image not found: {image_path}")
+
+    # return FileResponse(image_path)
+
+
+# #HASHED IMAGE
+# def hash_image(image_file: UploadFile):
+#         image = image_file.file.read()
+#         hash_value = hashlib.sha256(image).hexdigest()
+#         hashed_image_name = f"{hash_value}.jpg"
+#         hashed_image_path = images / hashed_image_name
         
-        with open(hashed_image_path, 'wb') as f:
-            f.write(image)
-        return hashed_image_name
+#         with open(hashed_image_path, 'wb') as f:
+#             f.write(image)
+#         return hashed_image_name
 
 
 #POST
-def insert_item(item: Item, db: sqlite3.Connection) -> int:
+def insert_item(item: Item, db: sqlite3.Connection):
     cursor = None
     try:
         cursor = db.cursor()
@@ -115,9 +125,9 @@ def insert_item(item: Item, db: sqlite3.Connection) -> int:
             category_id = rows[0]
             
         query = """
-        INSERT INTO items (name, category_id, image_name) VALUES (?, ?, ?)
+        INSERT INTO items (name, category_id) VALUES (?, ?)
         """
-        cursor.execute(query, (item.name, category_id, item.image))
+        cursor.execute(query, (item.name, category_id))
 
         db.commit()
     except sqlite3.DatabaseError as e:
@@ -127,18 +137,17 @@ def insert_item(item: Item, db: sqlite3.Connection) -> int:
         if cursor:
             cursor.close()
 
-class AddItemResponse(BaseModel):
-    message: str
-
 @app.post("/items", response_model=AddItemResponse)
 def add_item(
     name: str = Form(...),
     category: str = Form(...),
-    image_name: UploadFile = Form(...),
     db: sqlite3.Connection = Depends(get_db),
 ):
     if not name:
         raise HTTPException(status_code=400, detail="name is required")
 
-    insert_item(Item(name=name, category=category, image=image_name))
-    return AddItemResponse(**{"message": f"item received: {name}"})
+    if not category:
+        raise HTTPException(status_code=400, detail="category is required")
+    
+    insert_item(Item(name=name, category=category), db)
+    return AddItemResponse(**{"message": f"item received: {name}, {category}"})
