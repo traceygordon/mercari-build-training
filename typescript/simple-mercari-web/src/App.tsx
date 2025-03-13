@@ -9,9 +9,7 @@ function App() {
   return (
     <div>
       <header className="Title">
-        <p>
-          <b>Simple Mercari</b>
-        </p>
+          <h2>Simple Mercari</h2>
       </header>
       <div>
         <Listing onListingCompleted={() => setReload(true)} />
