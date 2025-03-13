@@ -73,3 +73,36 @@ def get_items_from_database():
     
     finally:
         cursor.close()
+
+
+GET ALL
+     query = """
+        SELECT items.name AS name, categories.name AS category, items.image_name FROM items
+        JOIN categories ON items.category_id = categories.id
+        WHERE items.category_id = ?
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        items = [{"name": name, "category": category, "image_name": image_name} for name, category, image_name in rows]
+        return items
+
+#Logging and Middleware
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    setup_database()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
+logger = logging.getLogger("uvicorn")
+logger.level = logging.INFO
+images = pathlib.Path(__file__).parent.resolve() / "images"
+origins = [os.environ.get("FRONT_URL", "http://localhost:3000")]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
