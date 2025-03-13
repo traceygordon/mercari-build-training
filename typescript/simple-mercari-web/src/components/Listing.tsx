@@ -97,7 +97,7 @@ export const Listing = ({ onListingCompleted }: Prop) => {
             required
             ref={uploadImageRef}
           />
-          <button className= "button" type="submit">List this item</button>
+          <button className="button" type="submit">List this item</button>
         </div>
       </form>
     </div>
