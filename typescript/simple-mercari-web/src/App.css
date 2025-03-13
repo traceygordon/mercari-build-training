@@ -3,25 +3,35 @@
 }
 
 .Title {
-  background-color: #222427;
+  background-color: #7a1db8;
   min-height: 8vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: left;
+  border: white, solid;
   font-size: calc(10px + 1vmin);
   color: white;
 }
 
 .Listing {
   background-color: #222427;
-  min-height: 8vh;
+  min-height: 75vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: left;
+  margin-top: 4vh;
+  border: white, solid;
   font-size: calc(10px + 1vmin);
   color: white;
+}
+
+.button{
+
+  margin-top: 2vh;
+  margin-left: 2hv;
+  margin-right: 2vh;
 }
 
 .ItemList {

@@ -37,9 +37,9 @@ export const Listing = ({ onListingCompleted }: Prop) => {
     event.preventDefault();
 
     // Validate field before submit
-    const REQUIRED_FILEDS = ['name', 'image'];
+    const REQUIRED_FIELDS = ['name', 'image'];
     const missingFields = Object.entries(values)
-      .filter(([, value]) => !value && REQUIRED_FILEDS.includes(value))
+      .filter(([, value]) => !value && REQUIRED_FIELDS.includes(value))
       .map(([key]) => key);
 
     if (missingFields.length) {
@@ -97,7 +97,7 @@ export const Listing = ({ onListingCompleted }: Prop) => {
             required
             ref={uploadImageRef}
           />
-          <button type="submit">List this item</button>
+          <button className= "button" type="submit">List this item</button>
         </div>
       </form>
     </div>
