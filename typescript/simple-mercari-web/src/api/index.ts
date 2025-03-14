@@ -1,3 +1,4 @@
+
 const SERVER_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:9000';
 
 export interface Item {
@@ -14,7 +15,7 @@ export interface ItemListResponse {
 export const fetchItems = async (): Promise<ItemListResponse> => {
   const response = await fetch(`${SERVER_URL}/items`, {
     method: 'GET',
-    mode: 'no-cors',
+    mode: 'cors',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
@@ -22,7 +23,7 @@ export const fetchItems = async (): Promise<ItemListResponse> => {
   });
 
   if (response.status >= 400) {
-    throw new Error('Failed to fetch items from the server')
+    throw new Error('Failed to fetch items from the server');
   }
   return response.json();
 };
@@ -34,19 +35,26 @@ export interface CreateItemInput {
 }
 
 export const postItem = async (input: CreateItemInput): Promise<Response> => {
+
   const data = new FormData();
   data.append('name', input.name);
   data.append('category', input.category);
   data.append('image', input.image);
-  const response = await fetch(`${SERVER_URL}/items`, {
-    method: 'POST',
-    mode: 'cors',
-    body: data,
-  });
 
-  if (response.status >= 400) {
-    throw new Error('Failed to post item to the server');
+  try {
+
+   const response = await fetch(`${SERVER_URL}/items`, {
+     method: 'POST',
+     mode: 'cors',
+     body: data,
+   });
+
+   if (!response.ok) {
+    throw new Error(`HTTP error! Status: ${response.status}`);
   }
 
   return response;
+ } catch (error) {
+    throw error;
+ }
 };

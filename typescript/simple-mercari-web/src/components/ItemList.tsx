@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Item, fetchItems } from '~/api';
 
@@ -19,7 +20,7 @@ export const ItemList = ({ reload, onLoadCompleted }: Prop) => {
           onLoadCompleted();
         })
         .catch((error) => {
-          console.error('GET error:', error)
+          console.error('GET error:', error);
         });
     };
 
@@ -29,20 +30,20 @@ export const ItemList = ({ reload, onLoadCompleted }: Prop) => {
   }, [reload, onLoadCompleted]);
 
   return (
-    <div>
-      {items?.map((item) => {
-        return (
-          <div key={item.id} className="ItemList">
-            {/* TODO: Task 2: Show item images */}
-            <img src={PLACEHOLDER_IMAGE} />
-            <p>
-              <span>Name: {item.name}</span>
-              <br />
-              <span>Category: {item.category}</span>
-            </p>
+
+    <div className="ItemList">
+      {items.map((item) => (
+        <div key={item.id} className="itemCard">
+          <img
+            src={item.image_name ? `${import.meta.env. VITE_BACKEND_URL}/images/${item.image_name}` : PLACEHOLDER_IMAGE}
+          />
+          <div className="item-info">
+            <h3>{item.name}</h3>
+            <p>{item.category}</p>
+
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 };
