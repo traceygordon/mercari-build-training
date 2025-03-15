@@ -36,7 +36,6 @@ export const Listing = ({ onListingCompleted }: Prop) => {
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // Validate field before submit
     const REQUIRED_FIELDS = ['name', 'image'];
     const missingFields = Object.entries(values)
       .filter(([, value]) => !value && REQUIRED_FIELDS.includes(value))
@@ -47,7 +46,6 @@ export const Listing = ({ onListingCompleted }: Prop) => {
       return;
     }
 
-    // Submit the form
     postItem({
       name: values.name,
       category: values.category,
@@ -70,7 +68,7 @@ export const Listing = ({ onListingCompleted }: Prop) => {
   };
   return (
     <div className="Listing">
-      <form className= "formbox" onSubmit={onSubmit}>
+      <form onSubmit={onSubmit}>
         <div>
           <input
             type="text"
@@ -97,16 +95,9 @@ export const Listing = ({ onListingCompleted }: Prop) => {
             required
             ref={uploadImageRef}
           />
-          <button className="button" type="submit">List this item</button>
+          <button type="submit">List this item</button>
         </div>
       </form>
-
-      <div className="construction">
-      <img className="img" src="Bob_the_builder.jpg" /> 
-      <h1>Under construction</h1>
-  
     </div>
-    </div>
-    
   );
 };

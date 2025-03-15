@@ -1,20 +1,24 @@
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS items;
 
-CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL COLLATE NOCASE UNIQUE
-);
-
 CREATE TABLE IF NOT EXISTS items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL COLLATE NOCASE,
-    category TEXT NOT NULL,
-    FOREIGN KEY (category) REFERENCES categories(id)
+    name TEXT NOT NULL,
+    category_id INTEGER NOT NULL,
+    image_name TEXT NOT NULL
 );
 
-INSERT INTO categories (id, name) VALUES (1, 'fashion');
-INSERT INTO items (id, name, category) VALUES (1, 'jacket', 'fashion');
+-- categories テーブルを作成（カテゴリ情報）
+CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL
+);
 
-SELECT * FROM categories;
-SELECT * FROM items;
+-- items テーブルを作成（category_id を外部キーに変更）
+CREATE TABLE IF NOT EXISTS items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    category_id INTEGER NOT NULL,
+    image_name TEXT NOT NULL,
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);

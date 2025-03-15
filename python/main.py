@@ -1,26 +1,49 @@
 import os
 import logging
 import pathlib
-import sqlite3
-from fastapi import FastAPI, Form, HTTPException, Depends, Query, UploadFile
+from fastapi import FastAPI, Form, HTTPException, Depends, UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+import sqlite3
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import hashlib
-from typing import Optional
 
-#PATHS
+
 images = pathlib.Path(__file__).parent.resolve() / "images"
-items_file = pathlib.Path(__file__).parent.resolve() / "items.json"
 db = pathlib.Path(__file__).parent.resolve() / "db" / "mercari.sqlite3"
-SQL_File = pathlib.Path(__file__).parent.resolve() / "db" / "items.sql"
+sql_file = pathlib.Path(__file__).parent.resolve() / "db" / "items.sql"
 
-#MIDDLEWARE
+def get_db():
+    if not db.exists():
+        yield
+
+    conn = sqlite3.connect(db)
+    conn.row_factory = sqlite3.Row 
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
+def setup_database():
+    conn = sqlite3.connect(db) 
+    cursor = conn.cursor()
+
+    if sql_file.exists():
+        with open(sql_file, "r", encoding="utf-8") as file:
+            sql_script = file.read()
+            cursor.executescript(sql_script)  
+    
+    conn.commit()
+    conn.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_database()
     yield
+
 
 app = FastAPI(lifespan=lifespan)
 
@@ -36,7 +59,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#TEST
+
 class HelloResponse(BaseModel):
     message: str
 
@@ -46,134 +69,129 @@ def hello():
     return HelloResponse(**{"message": "Hello, world!"})
 
 
-#MODELS
-class Item(BaseModel):
-    id: Optional[int] = None
-    name: str
-    category: str
-
-
-
 class AddItemResponse(BaseModel):
     message: str
 
-
-#DATABASE AND GET ITEMS
-@app.get("/items")
-def get_items():
-    conn = sqlite3.connect(db)
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM items;") 
-    data = cursor.fetchall()
-    conn.close()
-    return AddItemResponse(**{"message": f"items: {data}"})
-
-def get_db():
-    conn = sqlite3.connect(db)
-    return conn
-
-def setup_database():
-    # Ensure the db directory exists
-    db_dir = pathlib.Path(__file__).parent.resolve() / "db"
-    db_dir.mkdir(exist_ok=True)
-    
-    conn = sqlite3.connect(db)
-    cursor = conn.cursor()
-
-    if SQL_File.exists():
-        with open(SQL_File, 'r') as f:
-            cursor.executescript(f.read())
-    conn.commit()
-    conn.close()
+class Item(BaseModel):
+    id: int
+    name: str
+    category: str
+    image_name: str
 
 
-#GET IMAGE
-@app.get("/image/")
-async def get_image(image_name: Optional[str] = Query(None)):
-    if image_name is None:
-        image_name = "default.jpg"
+IMAGES_DIR ="images"
+os.makedirs(IMAGES_DIR, exist_ok =True)
 
-    image_path = images / image_name
-
-    if not image_name.endswith(".jpg"):
-        raise HTTPException(status_code=400, detail="Image must end with .jpg")
-
-    if not image_path.exists():
-        logger.debug(f"Image not found: {image_path}")
-        raise HTTPException(status_code=404, detail="Image not found")
-
-    return FileResponse(image_path)
-
-
-#HASHED IMAGE
-def hash_image(image_file: UploadFile):
-    image = image_file.file.read()
-    hash_value = hashlib.sha256(image).hexdigest()
-    hashed_image_name = f"{hash_value}.jpg"
-    hashed_image_path = images / hashed_image_name
-    
-    with open(hashed_image_path, 'wb') as f:
-        f.write(image)
-    return hashed_image_name
-
-
-#POST
-def insert_item(item: Item, db: sqlite3.Connection):
-    cursor = None
-    try:
-        cursor = db.cursor()
-        query_category = "SELECT id FROM categories WHERE name = ?"
-        cursor.execute(query_category, (item.category,))
-        rows = cursor.fetchone()
-        if rows is None:
-            insert_query_category = "INSERT INTO categories (name) VALUES (?)"
-            cursor.execute(insert_query_category, (item.category,))
-            category_id = cursor.lastrowid
-        else:
-            category_id = rows[0]
-            
-        query = """
-        INSERT INTO items (name, category) VALUES (?, ?)
-        """
-        cursor.execute(query, (item.name, category_id))
-
-        db.commit()
-    except sqlite3.DatabaseError as e:
-        db.rollback() 
-        raise HTTPException(status_code=500, detail=f"Database error: {e}")
-    finally:
-        if cursor:
-            cursor.close()
-
-@app.post("/items/json", response_model=AddItemResponse)
-def add_item_json(item: Item):
-    if not item.name:
-        raise HTTPException(status_code=400, detail="name is required")
-
-    if not item.category:
-        raise HTTPException(status_code=400, detail="category is required")
-    
-    db_conn = get_db()
-    try:
-        insert_item(item, db_conn)
-        return AddItemResponse(**{"message": f"item received: {item.name}, {item.category}"})
-    finally:
-        db_conn.close()
 
 @app.post("/items", response_model=AddItemResponse)
 def add_item(
     name: str = Form(...),
     category: str = Form(...),
+    image: UploadFile =File(...), 
+    db: sqlite3.Connection = Depends(get_db),
 ):
     if not name:
         raise HTTPException(status_code=400, detail="name is required")
-
+    
     if not category:
         raise HTTPException(status_code=400, detail="category is required")
     
-    db_conn = get_db()
-    try:
-        insert_item(Item(name=name, category=category), db_conn)
-        return AddItemResponse(**{"message": f"item received: {name}, {category}"})
-    finally:
-        db_conn.close()
+    image_bytes =image.file.read()
+    image.file.seek(0)
+    hashed_filename = hashlib.sha256(image_bytes).hexdigest() +".jpg"
+
+    image_path = os.path.join(IMAGES_DIR, hashed_filename)
+    with open(image_path, "wb") as buffer:
+        buffer.write(image_bytes)
+
+    cursor=db.cursor() 
+    
+    cursor.execute("SELECT id FROM categories WHERE name = ?", (category,))
+    category_row = cursor.fetchone()
+
+    if category_row:
+        category_id = category_row["id"]
+
+    else:
+        cursor.execute("INSERT INTO categories (name) VALUES (?)", (category,))
+        category_id = cursor.lastrowid
+
+    cursor.execute(
+        "INSERT INTO items (name, category_id, image_name) VALUES (?, ?, ?)",
+        (name, category_id, hashed_filename),
+    )
+    db.commit()
+    return AddItemResponse(**{"message": f"item received: {name}, {category}, {hashed_filename}"})
+
+
+@app.get("/items")
+def get_items(db: sqlite3.Connection = Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM items")
+    cursor.execute(
+        """SELECT items.id, items.name, categories.name as category, items.image_name
+           FROM items
+           JOIN categories ON items.category_id = categories.id"""
+    )
+    rows = cursor.fetchall()
+    items_list = [{"id": id, "name": name, "category": category, "image_name": image_name} for id, name, category, image_name in rows]
+    
+    
+    return {"items": items_list}
+    
+    
+@app.get("/search")
+def search_items(query: str, db: sqlite3.Connection = Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute(
+        """SELECT items.id, items.name, categories.name as category, items.image_name
+           FROM items
+           JOIN categories ON items.category_id = categories.id
+           WHERE items.name LIKE ? OR categories.name LIKE ?""",
+        (f"%{query}%", f"%{query}%"),
+    )
+
+    items = [
+        {"id": row["id"], "name": row["name"], "category": row["category"], "image_name": row["image_name"]}
+        for row in cursor.fetchall()
+    ]
+
+    if not items:
+        raise HTTPException(status_code=404, detail="No items found with the given query")
+
+    return {"items": items}
+    
+    
+@app.get("/items/{item_id}")
+
+def get_item(item_id: int, db: sqlite3.Connection = Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute(
+        """SELECT items.id, items.name, categories.name as category, items.image_name
+           FROM items
+           JOIN categories ON items.category_id = categories.id
+           WHERE items.id = ?""",
+        (item_id,),
+    )
+
+    row = cursor.fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    return {"id": row["id"], "name": row["name"], "category": row["category"], "image_name": row["image_name"]}
+    
+
+@app.get("/image/{image_name}")
+async def get_image(image_name: str):
+    image = os.path.join(IMAGES_DIR, image_name)
+
+    if not image_name.endswith(".jpg"):
+        raise HTTPException(status_code=400, detail="Image path must end with .jpg")
+
+    if not os.path.exists(image):
+        logger.debug(f"Image not found: {image}")
+        image = os.path.join(IMAGES_DIR, "default.jpg")
+
+
+    return FileResponse(image)
