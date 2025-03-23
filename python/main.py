@@ -8,6 +8,7 @@ import sqlite3
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import hashlib
+from fastapi.staticfiles import StaticFiles
 
 
 images = pathlib.Path(__file__).parent.resolve() / "images"
@@ -51,14 +52,17 @@ logger = logging.getLogger("uvicorn")
 logger.level = logging.INFO
 images = pathlib.Path(__file__).parent.resolve() / "images"
 origins = [os.environ.get("FRONT_URL", "http://localhost:3000")]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
+
+app.mount("/images", StaticFiles(directory="images"), name="images")
 
 class HelloResponse(BaseModel):
     message: str

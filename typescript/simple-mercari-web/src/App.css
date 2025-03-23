@@ -11,7 +11,7 @@
   justify-content: left;
   font-size: calc(10px + 1vmin);
   color: white; 
-  border-radius: 30px;
+  border-radius: 10px;
   box-shadow: 0 0 30px rgba(0, 0, 0, .2);
   overflow: hidden;
 }
@@ -20,11 +20,7 @@
   position: relative;
   width: 850px;
   height: 60px;
-  background: #fff;
-  margin: 20px;
-  border-radius: 30px;
-  box-shadow: 0 0 30px rgba(0, 0, 0, .2);
-  overflow: hidden;
+  margin: 15px;
 }
 
 
@@ -63,6 +59,18 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 
+}
+
+.item-image{
+
+  display: flex;
+  margin: auto;
+  justify-content: center;
+  border-radius: 1em;
+  padding: 0.5em;
+  height: 12em;
+  width: 10em;
+  border: 0.06em solid black;
 }
 
 .App-link {
