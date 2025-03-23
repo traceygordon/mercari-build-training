@@ -35,6 +35,7 @@ export const ItemList = ({ reload, onLoadCompleted }: Prop) => {
       {items.map((item) => (
         <div key={item.id} className="itemCard">
           <img
+          className='item-image'
             src={item.image_name ? `${import.meta.env.VITE_BACKEND_URL}/images/${item.image_name}` : PLACEHOLDER_IMAGE}
 />
           <div className="item-info">
