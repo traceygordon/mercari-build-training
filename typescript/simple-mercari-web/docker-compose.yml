@@ -18,7 +18,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "9002:9000"
+      - "9000:9000"
     environment:
       DB_HOST: db
       FRONT_URL: "http://localhost:3000"
@@ -29,9 +29,9 @@ services:
     build:
       context: typescript/simple-mercari-web
       args:
-        VITE_BACKEND_URL: "http://localhost:8000"
+        VITE_BACKEND_URL: "http://localhost:9000"
     ports:
-      - "3001:3000"
+      - "3000:3000"
 
 volumes:
   images:
